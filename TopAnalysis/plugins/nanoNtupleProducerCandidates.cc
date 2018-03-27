@@ -855,6 +855,7 @@ void nanoNtupleProducerCandidates::analyze(edm::Event const& iEvent, edm::EventS
 		  candPvAssociationQuality_->push_back(pfc.pvAssociationQuality());
 		  candDXY_->push_back(pfc.dxy());
 		  candDZ_->push_back(pfc.dz());
+		  candPuppiWeight_->push_back(pfc.puppiWeight());
 		  candDZAssociatedPV_->push_back(pfc.dzAssociatedPV());
 		  //break;
 		  //candVertex_->push_back(cand2.vertex());//it is a 3D vector
