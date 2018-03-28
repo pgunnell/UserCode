@@ -806,68 +806,58 @@ void nanoNtupleProducerCandidates::analyze(edm::Event const& iEvent, edm::EventS
 	//Include constituents of the jets (you have that the first two constituents are the subjets which contain further constituents (the particles that defined the jets) and the particles that are excluded by the two subjets are listed afterwards
 
 	for ( unsigned ida = 0; ida < ijet->numberOfDaughters(); ++ida ) {
-	  reco::Candidate const * cand = ijet->daughter(ida);
+	  reco::Candidate const * cand_reco = ijet->daughter(ida);
+
+	  if ( cand_reco->numberOfDaughters() == 0 ){
 	  
-	  if ( cand->numberOfDaughters() == 0 ){
+	    const pat::PackedCandidate &cand = static_cast<const pat::PackedCandidate &>(*ijet->daughter(ida));
+  
+	    candPvAssociationQuality_->push_back(cand.pvAssociationQuality());
+	    candDXY_->push_back(cand.dxy());
+	    candDZ_->push_back(cand.dz());
+	    candPuppiWeight_->push_back(cand.puppiWeight());
+	    candDZAssociatedPV_->push_back(cand.dzAssociatedPV());
+	              	      
+	    candPx_->push_back(cand.px());
+	    candPy_->push_back(cand.py());
+	    candPz_->push_back(cand.pz());
+	    candEnergy_->push_back(cand.energy());
 	    
-	    for(const pat::PackedCandidate &pfc : *cands) {
-	      if(pfc.pt()==cand->pt() && pfc.eta()==cand->eta() && pfc.phi()==cand->phi()){
-		candPvAssociationQuality_->push_back(pfc.pvAssociationQuality());
-		candDXY_->push_back(pfc.dxy());
-		candDZ_->push_back(pfc.dz());
-		candPuppiWeight_->push_back(pfc.puppiWeight());
-		candDZAssociatedPV_->push_back(pfc.dzAssociatedPV());
-		//break;
-		//candVertex_->push_back(cand2.vertex());//it is a 3D vector
-	      }
-	    }
-	      
-	    candPx_->push_back(cand->px());
-	    candPy_->push_back(cand->py());
-	    candPz_->push_back(cand->pz());
-	    candEnergy_->push_back(cand->energy());
-	    
-	    candPdgId_->push_back(cand->pdgId());
-	    candPhi_->push_back(cand->phi());
-	    candEta_->push_back(cand->eta());
-	    candPt_->push_back(cand->pt());
-	    candMass_->push_back(cand->mass()); // pfc.p4().mass()
+	    candPdgId_->push_back(cand.pdgId());
+	    candPhi_->push_back(cand.phi());
+	    candEta_->push_back(cand.eta());
+	    candPt_->push_back(cand.pt());
+	    candMass_->push_back(cand.mass()); // pfc.p4().mass()
 	    candSubJetPart_->push_back(0);
 	    ncandidatesjet++;
 	  }
 	
 	  else {
-	    for ( unsigned jda = 0; jda < cand->numberOfDaughters(); ++jda ) {
-	      reco::Candidate const * cand2 = cand->daughter(jda);
-	      candPdgId_->push_back(cand2->pdgId());
-	      candPhi_->push_back(cand2->phi());
-	      candEta_->push_back(cand2->eta());
-	      candPt_->push_back(cand2->pt());
-	      candMass_->push_back(cand2->mass());
+	    for ( unsigned jda = 0; jda < cand_reco->numberOfDaughters(); ++jda ) {
+	      const pat::PackedCandidate &cand2 = static_cast<const pat::PackedCandidate &>(*cand_reco->daughter(jda));
 
-	      candPx_->push_back(cand2->px());
-	      candPy_->push_back(cand2->py());
-	      candPz_->push_back(cand2->pz());
-	      candEnergy_->push_back(cand2->energy());
+	      candPdgId_->push_back(cand2.pdgId());
+	      candPhi_->push_back(cand2.phi());
+	      candEta_->push_back(cand2.eta());
+	      candPt_->push_back(cand2.pt());
+	      candMass_->push_back(cand2.mass());
 
-	      for(const pat::PackedCandidate &pfc : *cands) {
-		if(pfc.pt()==cand2->pt() && pfc.eta()==cand2->eta() && pfc.phi()==cand2->phi()){
-		  candPvAssociationQuality_->push_back(pfc.pvAssociationQuality());
-		  candDXY_->push_back(pfc.dxy());
-		  candDZ_->push_back(pfc.dz());
-		  candPuppiWeight_->push_back(pfc.puppiWeight());
-		  candDZAssociatedPV_->push_back(pfc.dzAssociatedPV());
-		  //break;
-		  //candVertex_->push_back(cand2.vertex());//it is a 3D vector
-		}
-	      }
+	      candPx_->push_back(cand2.px());
+	      candPy_->push_back(cand2.py());
+	      candPz_->push_back(cand2.pz());
+	      candEnergy_->push_back(cand2.energy());
 
-	      candSubJetPart_->push_back(1);
+	      candPvAssociationQuality_->push_back(cand2.pvAssociationQuality());
+	      candDXY_->push_back(cand2.dxy());
+	      candDZ_->push_back(cand2.dz());
+	      candDZAssociatedPV_->push_back(cand2.dzAssociatedPV());
+	      candPuppiWeight_->push_back(cand2.puppiWeight());
 	      ncandidatesjet++;
-	    }
+	      candSubJetPart_->push_back(1);
+	    }	     
 	  }
 	}
-      
+      	       
 	ncandidates_->push_back(ncandidatesjet);
       
 	cor_           ->push_back(1+unc);
