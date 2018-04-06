@@ -20,7 +20,7 @@ task = cms.Task()
 
 #############   Format MessageLogger #################
 process.load('FWCore.MessageService.MessageLogger_cfi')
-process.MessageLogger.cerr.FwkReport.reportEvery = 1000
+process.MessageLogger.cerr.FwkReport.reportEvery = 10
 
 process.options = cms.untracked.PSet( wantSummary = cms.untracked.bool(True) )
 process.options.allowUnscheduled = cms.untracked.bool(True)
@@ -130,23 +130,128 @@ task.add(getattr(process, 'patJetsAk8PuppiJets' ))
 task.add(getattr(process, 'patJetsCa15PuppiJets' ))
 
 #adding subjettiness
-#process.load('RecoJets.JetProducers.nJettinessAdder_cfi')
-#task.add(process.Njettiness)
-#process.NjettinessAK15 = process.Njettiness.clone() #probably you need to change something here
-#task.add(process.NjettinessAK15)
-#process.NjettinessAK15.src = cms.InputTag("patJetsAk15PuppiJets")
+process.load('RecoJets.JetProducers.nJettinessAdder_cfi')
+task.add(process.Njettiness)
+process.NjettinessAK15 = process.Njettiness.clone() #probably you need to change something here
+task.add(process.NjettinessAK15)
+process.NjettinessAK15.src = cms.InputTag("ak15PuppiJets")
 
-#process.patJetsAk15PuppiJets.userData.userFloats.src += ['NjettinessAK8:tau1','NjettinessAK8:tau2','NjettinessAK8:tau3','NjettinessAK8:tau4']
+getattr(process,"patJetsAk15PuppiJets").userData.userFloats.src += ['NjettinessAK15:tau1','NjettinessAK15:tau2','NjettinessAK15:tau3','NjettinessAK15:tau4']
+
+#For doing soft drop algorithm to an existing jet
+#From UHH2 software, modified
+#one has to create both soft drop jets and soft drop subjets
+
+process.ak15PuppiJetsSoftDrop = process.ak15PuppiJets.clone(
+    rParam=1.5,
+    beta = cms.double(0.0),
+    useExplicitGhosts = cms.bool(True),
+    useSoftDrop = cms.bool(True),
+    writeCompound = cms.bool(True),
+    zcut = cms.double(0.1),
+    R0=cms.double(1.5)
+)
+task.add(process.ak15PuppiJetsSoftDrop)
+
+process.ak15PuppiJetsSoftDropforsub = process.ak15PuppiJets.clone(
+    rParam=1.5,
+    beta = cms.double(0.0),
+    jetCollInstanceName = cms.string("SubJets"),
+    useExplicitGhosts = cms.bool(True),
+    useSoftDrop = cms.bool(True),
+    writeCompound = cms.bool(True),
+    zcut = cms.double(0.1),
+    R0=cms.double(1.5)
+)
+task.add(process.ak15PuppiJetsSoftDropforsub)
+
+
+#Now patifyng both the fat jets and the subjet
+addJetCollection(process,labelName = 'ak15PuppiJetsSoftDrop',
+                 jetSource = cms.InputTag('ak15PuppiJetsSoftDrop'),
+                 algo = 'AK', rParam=1.5,
+                 genJetCollection=cms.InputTag('ak15GenJets'),
+                 jetCorrections = ('AK8PFPuppi', ['L1FastJet', 'L2Relative', 'L3Absolute'], 'None'),
+                 pfCandidates = cms.InputTag('packedPFCandidates'),
+                 pvSource = cms.InputTag('offlineSlimmedPrimaryVertices'),
+                 svSource = cms.InputTag('slimmedSecondaryVertices'),
+                 muSource =cms.InputTag( 'slimmedMuons'),
+                 elSource = cms.InputTag('slimmedElectrons'),
+                 genParticles = cms.InputTag('prunedGenParticles'),
+                 getJetMCFlavour=False,
+)
+
+task.add(getattr(process, 'patJetsAk15PuppiJetsSoftDrop' ))
+
+addJetCollection(process,labelName = 'ak15PuppiJetsSoftDropforsub',
+                 jetSource = cms.InputTag('ak15PuppiJetsSoftDropforsub',"SubJets"),
+                 algo = 'AK', rParam=1.5,
+                 genJetCollection=cms.InputTag('ak15GenJets'),
+                 jetCorrections = ('AK8PFPuppi', ['L1FastJet', 'L2Relative', 'L3Absolute'], 'None'),
+                 pfCandidates = cms.InputTag('packedPFCandidates'),
+                 pvSource = cms.InputTag('offlineSlimmedPrimaryVertices'),
+                 svSource = cms.InputTag('slimmedSecondaryVertices'),
+                 muSource =cms.InputTag( 'slimmedMuons'),
+                 elSource = cms.InputTag('slimmedElectrons'),
+                 genParticles = cms.InputTag('prunedGenParticles'),
+                 getJetMCFlavour=False,
+)
+
+task.add(getattr(process, 'patJetsAk15PuppiJetsSoftDropforsub' ))
 
 #Soft drop mass inclusion
-#from RecoJets.Configuration.RecoPFJets_cff import ak8PFJetsCHSSoftDropMass
+#from RecoJets.JetProducers.ak8PFJetsPuppi_groomingValueMaps_cfi import ak8PFJetsPuppiSoftDropMass
 
-#process.ak15PFJetsCHSSoftDropMass = ak8PFJetsCHSSoftDropMass.clone() #probably you need to change something here
-#task.add(process.ak15PFJetsCHSSoftDropMass)
+#process.ak15PuppiSoftDropMass = ak8PFJetsPuppiSoftDropMass.clone(
+#    distMax = cms.double(1.5),
+#    matched = cms.InputTag("ak15PuppiJets"),
+#    src = cms.InputTag("ak15PuppiJetsSoftDrop"),
+#    value = cms.string('mass')
+#)
+#task.add(process.ak15PuppiSoftDropMass)
 
-#process.ak15PFJetsCHSSoftDropMass.src = cms.InputTag("patJetsAk15PuppiJets")
-#process.patJetsAk15PuppiJets.userData.userFloats.src += ['ak8PFJetsCHSSoftDropMass']
+#getattr(process,"patJetsAk15PuppiJetsSoftDrop").userData.userFloats.src += ['ak15PuppiJetsSoftDropMass']
 
+#slimming of the subjet collection
+#process.slimmedJetsAk15PuppiJetsSoftDropforsub = cms.EDProducer("PATJetSlimmer",
+#                                                            src = cms.InputTag("patJetsAk15PuppiJetsSoftDropforsub"),
+#                                                            packedPFCandidates = cms.InputTag("packedPFCandidates"),
+#                                                            dropJetVars = cms.string("1"),
+#                                                            dropDaughters = cms.string("0"),
+#                                                            rekeyDaughters = cms.string("1"),
+#                                                            dropTrackRefs = cms.string("1"),
+#                                                            dropSpecific = cms.string("1"),
+#                                                            dropTagInfos = cms.string("1"),
+#                                                            modifyJets = cms.bool(True),
+#                                                            mixedDaughters = cms.bool(False),
+#                                                            modifierConfig = cms.PSet( modifications = cms.VPSet() )
+#)
+
+#task.add(process.slimmedJetsAk15PuppiJetsSoftDropforsub)
+
+#merging the two collections in one jet
+process.patJetsAk15PuppiJetsSoftDropPacked = cms.EDProducer("BoostedJetMerger",
+    jetSrc = cms.InputTag("patJetsAk15PuppiJetsSoftDrop"),
+    subjetSrc = cms.InputTag("patJetsAk15PuppiJetsSoftDropforsub")
+)
+
+task.add(process.patJetsAk15PuppiJetsSoftDropPacked)
+
+#To add subjets to the ungroomed fat jets - then, you can use them
+# From UHH2 software, modified
+# Add subjets from groomed fat jet to its corresponding ungroomed fatjet
+
+process.packedPatJetsAk15PuppiJets = cms.EDProducer("JetSubstructurePacker",
+    algoLabels = cms.vstring('SoftDropPuppi'),
+    algoTags = cms.VInputTag(cms.InputTag("patJetsAk15PuppiJetsSoftDropPacked")),
+    distMax = cms.double(1.5),
+    fixDaughters = cms.bool(False),
+    jetSrc = cms.InputTag("patJetsAk15PuppiJets")
+)
+
+task.add(process.packedPatJetsAk15PuppiJets)
+
+#following things
 process.load('RecoJets.JetProducers.QGTagger_cfi')
 process.QGTagger.srcJets   = cms.InputTag('slimmedJets')
 process.QGTagger.jetsLabel = cms.string('QGL_AK4PFchs')
@@ -236,7 +341,8 @@ process.boostedAK4 = cms.EDAnalyzer('nanoNtupleProducerCandidates',
   GenptMin        = cms.untracked.double(50),
   GenetaMax       = cms.untracked.double(2.5),
   jetFlavourInfos = cms.InputTag("ak4genJetFlavourInfos"),                 
-  isPrint         = cms.untracked.bool(False),                           
+  isPrint         = cms.untracked.bool(False),   
+  jetlabel        = cms.string('AK4'),
 )
 
 #create also GenJets with different cone sizes
@@ -245,7 +351,8 @@ process.boostedAK8 = process.boostedAK4.clone(
     jets             = cms.InputTag('slimmedJetsAK8'),
     genjets          = cms.untracked.InputTag('slimmedGenJetsAK8'),
     jetFlavourInfos = cms.InputTag("ak8genJetFlavourInfos"),                     
-    jetRadius       = cms.double(0.8),                                  
+    jetRadius       = cms.double(0.8),
+    jetlabel        = cms.string('AK8'),                                  
 )
 
 process.boostedAK8puppi = process.boostedAK4.clone(
@@ -253,14 +360,17 @@ process.boostedAK8puppi = process.boostedAK4.clone(
     genjets          = cms.untracked.InputTag('slimmedGenJetsAK8'),
     jetFlavourInfos = cms.InputTag("ak8genJetFlavourInfos"),                    
     jetRadius       = cms.double(0.8),                                   
+    jetlabel        = cms.string('AK8'),
 )
 
 process.boostedAK15 = process.boostedAK4.clone(
-    jets             = cms.InputTag('patJetsAk15PuppiJets'),
+    #jets             = cms.InputTag('patJetsAk15PuppiJets'),
+    jets             = cms.InputTag('packedPatJetsAk15PuppiJets'),
     #jets             = cms.InputTag('patJetsAk15PuppiJetsSoftDrop'),
     genjets          = cms.untracked.InputTag('ak15GenJets'),
     jetFlavourInfos = cms.InputTag("ak8genJetFlavourInfos"),                     
     jetRadius       = cms.double(1.5),                                  
+    jetlabel        = cms.string('AK15'),
 )
 
 process.boostedCA15 = process.boostedAK4.clone(
@@ -268,14 +378,15 @@ process.boostedCA15 = process.boostedAK4.clone(
     genjets          = cms.untracked.InputTag('ca15GenJets'),
     jetFlavourInfos = cms.InputTag("ak8genJetFlavourInfos"),                     
     jetRadius       = cms.double(1.5),                                  
+    jetlabel        = cms.string('AK15'),
 )
 
 
 process.p = cms.Path(
    #process.boostedAK4 *
-   process.boostedAK8  #*process.boostedAK8puppi
-   *process.boostedAK15*
-   process.boostedCA15
+   #process.boostedAK8  #*process.boostedAK8puppi
+   process.boostedAK15#*
+   #process.boostedCA15
 )
 
 process.p.associate(task)
