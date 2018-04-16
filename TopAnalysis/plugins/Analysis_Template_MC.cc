@@ -45,6 +45,7 @@ void Analysis_Template_MC::beginJob()
      mInf = TFile::Open(mFileName.c_str());
      mDir = (TDirectoryFile*)mInf->Get(mDirName.c_str());
      mTree = (TTree*)mDir->Get(mTreeName.c_str());
+     NEvents=0;
      
      //------------------ Histogram Booking --------------------------- //
      num_of_Vtx     = fs->make<TH1F>("num_of_Vtx","num_of_Vtx",100,0.,100.);
@@ -96,7 +97,8 @@ void Analysis_Template_MC::analyze(edm::Event const& iEvent, edm::EventSetup con
    std::vector<float>* jetPt_=0; std::vector<float>* jetEta_=0; std::vector<float>* jetPhi_=0; std::vector<float>* jetEnergy_=0; std::vector<float>* jetMass_=0; std::vector<float>* jetMassSoftDrop_=0;
 
    std::vector<float>* jetchf_=0; std::vector<float>* jetnhf_=0; std::vector<float>* jetphf_=0; std::vector<float>* jetmuf_=0; std::vector<float>* jetelf_=0; std::vector<float>* jettau1_=0; std::vector<float>* jettau2_=0; std::vector<float>* jettau3_=0; 
-
+   std::vector<double>* pre_=0; std::vector<bool>* bit_=0;	
+	
    mTree->SetBranchAddress("nvtx",&nvtx_);
    mTree->SetBranchAddress("nJets",&nJets_);
    mTree->SetBranchAddress("jetPt",&jetPt_);
@@ -128,6 +130,7 @@ void Analysis_Template_MC::analyze(edm::Event const& iEvent, edm::EventSetup con
    mTree->SetBranchAddress("triggerBit",&bit_);
 
    TH1D* NumberEvents=(TH1D*) mInf->Get("boosted/TriggerPass");
+   NEvents=NEvents+NumberEvents->GetBinContent(1);	
 
    //Trigger infos
    TH1F *hTrigNames = (TH1F*)mInf->Get("boosted/TriggerNames");
