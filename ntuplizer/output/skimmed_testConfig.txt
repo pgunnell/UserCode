@@ -1,0 +1,30 @@
+[config-begin]
+	Outputdir  = set_new_output_directory
+	Outputfile = outputfile.root
+	Lumi = 3000
+	Maxchilds = 6
+	Samplesdir = output/
+[config-end]
+
+[inputfiles-begin]
+background1_ntuple.root, background, 420, 56, 1000,2, false 
+signal0_ntuple.root, signal, 630, 23, 1000,1, true 
+background22_ntuple.root, background2, 432, 65, 1000,3, false 
+background33_ntuple.root, background3, 431, 12, 3000,5, false 
+background34_ntuple.root, background3, 431, 12, 3000,5, false 
+background35_ntuple.root, background3, 431, 12, 3000,5, false 
+[inputfiles-end]
+signal0_ntuple.root, signal, 630, 23, 1000,1, true 
+background1_ntuple.root, background, 420, 56, 1000,2, false 
+background22_ntuple.root, background2, 432, 65, 1000,3, false 
+background33_ntuple.root, background3, 431, 12, 3000,5, false 
+background34_ntuple.root, background3, 431, 12, 3000,5, false 
+background35_ntuple.root, background3, 431, 12, 3000,5, false 
+[inputfiles-end]
+signal0_ntuple.root, signal, 630, 23, 1000,1, true 
+background1_ntuple.root, background, 420, 56, 1000,2, false 
+background22_ntuple.root, background2, 432, 65, 1000,3, false 
+background33_ntuple.root, background3, 431, 12, 3000,5, false 
+background34_ntuple.root, background3, 431, 12, 3000,5, false 
+background35_ntuple.root, background3, 431, 12, 3000,5, false 
+[inputfiles-end]
