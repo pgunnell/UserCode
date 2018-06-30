@@ -2,7 +2,9 @@
 # How to download the analyzer
 
 cmsrel CMSSW_8_0_25
+
 cd CMSSW_8_0_25/src
+
 cmsenv
 
 git clone -b delphes https://github.com/pgunnell/UserCode.git 
