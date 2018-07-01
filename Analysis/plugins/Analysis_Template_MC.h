@@ -91,6 +91,8 @@ class Analysis_Template_MC : public edm::EDAnalyzer
     TH1F *MassDETJet;
     TH1F *MassSoftDropDETJet;
 
+    TH1F *DeltaPhiDETJet;
+
  };
 
 #endif
