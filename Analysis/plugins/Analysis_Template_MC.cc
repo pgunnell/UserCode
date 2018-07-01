@@ -30,8 +30,6 @@ Analysis_Template_MC::Analysis_Template_MC(edm::ParameterSet const& cfg)
      mTreeName       = cfg.getParameter<std::string>               ("treename");
      mDirName        = cfg.getParameter<std::string>               ("dirname");
      
-     mIsMCarlo       = cfg.getUntrackedParameter<bool>             ("isMCarlo",true);
-
      mCrossSection   = cfg.getUntrackedParameter<double>             ("CrossSection");
      mIntLumi        = cfg.getUntrackedParameter<double>             ("IntLumi",1);
 
@@ -54,6 +52,8 @@ void Analysis_Template_MC::beginJob()
      ptDETJet  = fs->make<TH1F>("ptDETJet","ptDETJet",200,0.,2000.); ptDETJet->Sumw2();
      yDETJet = fs->make<TH1F>("yDETJet","yDETJet",60,-3.,3.); yDETJet->Sumw2();
      phiDETJet = fs->make<TH1F>("phiDETJet","phiDETJet",60, -TMath::Pi(),TMath::Pi()); phiDETJet->Sumw2();
+
+     DeltaPhiDETJet = fs->make<TH1F>("DeltaPhiDETJet","DeltaPhiDETJet",30, 0 ,TMath::Pi()); DeltaPhiDETJet->Sumw2();
 
      //Tau1DETJet = fs->make<TH1F>("Tau1DETJet","Tau1DETJet",100,0.,1.);
      //Tau2DETJet = fs->make<TH1F>("Tau2DETJet","Tau2DETJet",100,0.,1.);
@@ -83,23 +83,84 @@ void Analysis_Template_MC::analyze(edm::Event const& iEvent, edm::EventSetup con
    
    int decade = 0 ;
    
-   float hweight=1.;  //Initial value set to one
+   float hweight= mCrossSection;  //Histograms already scaled by the cross section
 
-   std::vector<float>* jetPt_=0; std::vector<float>* jetEta_=0; std::vector<float>* jetPhi_=0; std::vector<float>* jetMass_=0; std::vector<float>* jetFlavour_=0;
-   //std::vector<float>* jetMassSoftDrop_=0; 
+   std::vector<float>* jetPt_=0; std::vector<float>* jetEta_=0; std::vector<float>* jetPhi_=0; std::vector<float>* jetMass_=0; std::vector<float>* jetFlavour_=0;   std::vector<float>* jetBTag_=0; 
+   std::vector<float>* AK8jetPt_=0; std::vector<float>* AK8jetEta_=0; std::vector<float>* AK8jetPhi_=0; std::vector<float>* AK8jetMass_=0; std::vector<float>* AK8jetFlavour_=0;   std::vector<float>* AK8jetBTag_=0; 
 
+   std::vector<float>* AK8jetTau1_=0;    std::vector<float>* AK8jetTau2_=0;    std::vector<float>* AK8jetTau3_=0; 
+   std::vector<float>* AK8genjetTau1_=0;    std::vector<float>* AK8genjetTau2_=0;    std::vector<float>* AK8genjetTau3_=0; 
+
+   //subjets
+   std::vector<float>* AK8jetSD1Pt_=0; std::vector<float>* AK8jetSD1Eta_=0; std::vector<float>* AK8jetSD1Phi_=0; std::vector<float>* AK8jetSD1Mass_=0; 
+   std::vector<float>* AK8jetSD2Pt_=0; std::vector<float>* AK8jetSD2Eta_=0; std::vector<float>* AK8jetSD2Phi_=0; std::vector<float>* AK8jetSD2Mass_=0; 
+
+   //gen jets
+   std::vector<float>* genjetPt_=0; std::vector<float>* genjetEta_=0; std::vector<float>* genjetPhi_=0; std::vector<float>* genjetMass_=0; std::vector<float>* genjetFlavour_=0; 
+   std::vector<float>* AK8genjetPt_=0; std::vector<float>* AK8genjetEta_=0; std::vector<float>* AK8genjetPhi_=0; std::vector<float>* AK8genjetMass_=0; std::vector<float>* AK8genjetFlavour_=0; 
+
+
+   //jets AK4 CHS
    mTree->SetBranchAddress("jetPt",&jetPt_);
    mTree->SetBranchAddress("jetEta",&jetEta_);
    mTree->SetBranchAddress("jetPhi",&jetPhi_);
    mTree->SetBranchAddress("jetMass",&jetMass_);
    mTree->SetBranchAddress("jetFlavour",&jetFlavour_);
    mTree->SetBranchAddress("jetBTag",&jetBTag_);
-   //mTree->SetBranchAddress("jetTau1",&jetTau1_);
-   //mTree->SetBranchAddress("jetTau2",&jetTau2_);
-   //mTree->SetBranchAddress("jetTau3",&jetTau3_);
-   
-   //To be added when they are inside the Ntuples
-   //mTree->SetBranchAddress("jetMassSoftDrop",&jetMassSoftDrop_); 
+
+   //genjets AK4
+   mTree->SetBranchAddress("genjetPt",&genjetPt_);
+   mTree->SetBranchAddress("genjetEta",&genjetEta_);
+   mTree->SetBranchAddress("genjetPhi",&genjetPhi_);
+   mTree->SetBranchAddress("genjetMass",&genjetMass_);
+   mTree->SetBranchAddress("genjetFlavour",&genjetFlavour_);
+
+   //genjets AK8
+   mTree->SetBranchAddress("AK8genjetPt",&AK8genjetPt_);
+   mTree->SetBranchAddress("AK8genjetEta",&AK8genjetEta_);
+   mTree->SetBranchAddress("AK8genjetPhi",&AK8genjetPhi_);
+   mTree->SetBranchAddress("AK8genjetMass",&AK8genjetMass_);
+   mTree->SetBranchAddress("AK8genjetFlavour",&AK8genjetFlavour_);
+
+   //jets AK8 CHS
+   mTree->SetBranchAddress("AK8jetPt",&AK8jetPt_);
+   mTree->SetBranchAddress("AK8jetEta",&AK8jetEta_);
+   mTree->SetBranchAddress("AK8jetPhi",&AK8jetPhi_);
+   mTree->SetBranchAddress("AK8jetMass",&AK8jetMass_);
+   mTree->SetBranchAddress("AK8jetFlavour",&AK8jetFlavour_);
+   mTree->SetBranchAddress("AK8jetBTag",&AK8jetBTag_);
+
+   //subjettiness AK8
+   mTree->SetBranchAddress("AK8jetTau1",&AK8jetTau1_);
+   mTree->SetBranchAddress("AK8jetTau2",&AK8jetTau2_);
+   mTree->SetBranchAddress("AK8jetTau3",&AK8jetTau3_);
+
+   mTree->SetBranchAddress("AK8genjetTau1",&AK8genjetTau1_);
+   mTree->SetBranchAddress("AK8genjetTau2",&AK8genjetTau2_);
+   mTree->SetBranchAddress("AK8genjetTau3",&AK8genjetTau3_);
+
+   //subjets AK8
+   mTree->SetBranchAddress("AK8jetSD1Pt",&AK8jetSD1Pt_); 
+   mTree->SetBranchAddress("AK8jetSD1Eta",&AK8jetSD1Eta_);
+   mTree->SetBranchAddress("AK8jetSD1Phi",&AK8jetSD1Phi_);
+   mTree->SetBranchAddress("AK8jetSD1Mass",&AK8jetSD1Mass_);
+
+   mTree->SetBranchAddress("AK8jetSD2Pt",&AK8jetSD2Pt_); 
+   mTree->SetBranchAddress("AK8jetSD2Eta",&AK8jetSD2Eta_);
+   mTree->SetBranchAddress("AK8jetSD2Phi",&AK8jetSD2Phi_);
+   mTree->SetBranchAddress("AK8jetSD2Mass",&AK8jetSD2Mass_);
+
+   //gen information
+   float nVtx_; float scale_; float processID_;
+
+   mTree->SetBranchAddress("nVtx",&nVtx_);
+   mTree->SetBranchAddress("scale",&scale_);
+   mTree->SetBranchAddress("processID",&processID_);   
+
+   float metEt_;    float metEta_;    float metPhi_;
+   mTree->SetBranchAddress("metEt",&metEt_);
+   //mTree->SetBranchAddress("metEta",&metEta_); //not there yet
+   mTree->SetBranchAddress("metPhi",&metPhi_);
    
    for(unsigned  l=0; l<NEntries; l++) {
      
@@ -149,6 +210,7 @@ void Analysis_Template_MC::analyze(edm::Event const& iEvent, edm::EventSetup con
 
    if(jetPt_->size()>1){
      double deltaPhiTwoJets = DeltaPhi(jetPhi_->at(0),jetPhi_->at(1));
+     DeltaPhiDETJet->Fill(deltaPhiTwoJets,hweight);
    }
    
  } // closing analyze() function
