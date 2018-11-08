@@ -21,4 +21,4 @@ git clone -b GenLevel https://github.com/pgunnell/UserCode.git
 
 For compiling (needed every time you make changes in a .cc/.h file):
 
-scramv1 b -r -j8
+- scramv1 b -r -j8
