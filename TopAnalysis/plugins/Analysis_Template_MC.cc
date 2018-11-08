@@ -53,13 +53,6 @@ Analysis_Template_MC::Analysis_Template_MC(edm::ParameterSet const& cfg)
   
   mTriggers       = cfg.getUntrackedParameter<std::vector<std::string>>     ("Triggers");
 
-  calib = BTagCalibration("CSVv2", "/nfs/dust/cms/user/gunnep/Run2Analysis/CMSSW_8_0_12/src/KKousour/TopAnalysis/plugins/subjet_CSVv2_Moriond17_B_H.csv");
-  reader = BTagCalibrationReader(BTagEntry::OP_MEDIUM,"central");
-  reader.load(calib, BTagEntry::FLAV_UDSG   , "incl");
-  
-  calibHF = BTagCalibration("CSVv2", "/nfs/dust/cms/user/gunnep/Run2Analysis/CMSSW_8_0_12/src/KKousour/TopAnalysis/plugins/subjet_CSVv2_Moriond17_B_H.csv");
-  readerHF = BTagCalibrationReader(BTagEntry::OP_MEDIUM,"central");
-  readerHF.load(calib, BTagEntry::FLAV_B   , "lt");
 
 }
 
