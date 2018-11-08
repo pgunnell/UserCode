@@ -2,4 +2,6 @@ UserCode
 ========
 
 git init
-git clone https://github.com/pgunnell/UserCode.git
+
+git clone -b GenLevel https://github.com/pgunnell/UserCode.git
+
