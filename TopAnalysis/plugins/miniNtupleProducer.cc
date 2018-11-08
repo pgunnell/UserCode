@@ -16,7 +16,7 @@
 #include "CondFormats/JetMETObjects/interface/JetCorrectorParameters.h"
 #include "JetMETCorrections/Objects/interface/JetCorrectionsRecord.h"
 
-#include "KKousour/TopAnalysis/plugins/miniNtupleProducer.h"
+#include "UserCode/TopAnalysis/plugins/miniNtupleProducer.h"
 
 using namespace std;
 using namespace reco;
