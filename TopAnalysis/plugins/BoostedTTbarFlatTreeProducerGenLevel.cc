@@ -289,8 +289,6 @@ void BoostedTTbarFlatTreeProducerGenLevel::analyze(edm::Event const& iEvent, edm
 	GenJetenergy_->push_back(i_gen->energy());
 	GenJetmass_->push_back(i_gen->mass());
 
-	//vP4Gen.push_back(i_gen->p4());
-        
         std::vector<fastjet::PseudoJet>  lClusterParticles;
         for(unsigned int ic=0; ic<i_gen->numberOfDaughters(); ic++) {
           const reco::Candidate* gencand = i_gen->daughter(ic);
