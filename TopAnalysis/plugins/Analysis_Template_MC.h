@@ -7,7 +7,6 @@
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
 
-#include "KKousour/TopAnalysis/plugins/BoostedDiscriminatorMVADesy.h"
 #include "CondFormats/BTauObjects/interface/BTagCalibration.h"
 #include "CondTools/BTau/interface/BTagCalibrationReader.h"
 
@@ -304,8 +303,6 @@ class Analysis_Template_MC : public edm::EDAnalyzer
 
     TH1F* MVADesy;
 
-    BoostedDiscriminatorMVADesy *discr_;
-    
     //Prepreselection
 
     TH1F* PtDETLeadingPrepreselectionSubJet0;

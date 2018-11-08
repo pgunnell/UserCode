@@ -274,8 +274,6 @@ void Analysis_Template_MC::beginJob()
      PtMatchedGenJetAndBWJetSubLeading = fs->make<TH1F>("PtMatchedGenJetAndBWJetSubLeading","PtMatchedGenJetAndBWJetSubLeading",Ptbins,Ptbinning); PtMatchedGenJetAndBWJetSubLeading->Sumw2();
      PtMatchedGenJetAndBWJetSubLeadingReco = fs->make<TH1F>("PtMatchedGenJetAndBWJetSubLeadingReco","PtMatchedGenJetAndBWJetSubLeadingReco",Ptbins,Ptbinning); PtMatchedGenJetAndBWJetSubLeadingReco->Sumw2();
 
-     discr_ = new BoostedDiscriminatorMVADesy();
-
      //After prepreselection
      PtDETLeadingPrepreselectionSubJet0  = fs->make<TH1F>("PtDETLeadingPrepreselectionSubJet0","PtDETLeadingPrepreselectionSubJet0",Ptbins,Ptbinning); PtDETLeadingPrepreselectionSubJet0->Sumw2();
      PtDETLeadingPrepreselectionSubJet1  = fs->make<TH1F>("PtDETLeadingPrepreselectionSubJet1","PtDETLeadingPrepreselectionSubJet1",Ptbins,Ptbinning); PtDETLeadingPrepreselectionSubJet1->Sumw2();
@@ -1115,12 +1113,8 @@ void Analysis_Template_MC::analyze(edm::Event const& iEvent, edm::EventSetup con
 	 //double jetSubJetpt1SubLeading = jetptSub1_->at(1);
 
 	 //mvaD = discr_->eval(tau31Leading,tau32Leading,MassLeading,MassSubJet0Leading,tau31SubLeading,tau32SubLeading,MassSubLeading,MassSubJet0SubLeading); //8variables
-	 mvaD = discr_->eval(jettau1_->at(0),jettau2_->at(0),jettau3_->at(0),jettau1_->at(1),jettau2_->at(1),jettau3_->at(1));
 	 //mvaD = discr_->eval(MassLeading,MassSubJet0Leading,MassSubLeading,MassSubJet0SubLeading); // Daniela
 	 
-
-	 MVADesy->Fill(mvaD,hweight);
-
 	 //Add histograms
 	 PtDETLeadingPrepreselectionSubJet0->Fill(jetptSub0_->at(0),hweight);
 	 PtDETLeadingPrepreselectionSubJet1->Fill(jetptSub1_->at(0),hweight);
