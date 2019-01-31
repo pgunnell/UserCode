@@ -35,6 +35,10 @@ Analysis_Template_MCFastSim::Analysis_Template_MCFastSim(edm::ParameterSet const
 
   mIsMCarlo       = cfg.getUntrackedParameter<bool>             ("isMCarlo");
 
+  mElSelection    = cfg.getUntrackedParameter<bool>             ("ElSelection");
+  mMuSelection    = cfg.getUntrackedParameter<bool>             ("MuSelection");
+  mHadSelection    = cfg.getUntrackedParameter<bool>            ("HadSelection");
+
   mCrossSection   = cfg.getUntrackedParameter<double>             ("CrossSection");
   mIntLumi        = cfg.getUntrackedParameter<double>             ("IntLumi");
 
@@ -103,6 +107,12 @@ void Analysis_Template_MCFastSim::beginJob()
   chi2        = fs->make<TH1F>("chi2","chi2",150,0.,1500.); chi2->Sumw2(); 
   LQHadrMassreco = fs->make<TH1F>("LQHadrMassreco","LQHadrMassreco",100,0.,4000.); LQHadrMassreco->Sumw2();
   LQLeptMassreco = fs->make<TH1F>("LQLeptMassreco","LQLeptMassreco",100,0.,4000.); LQLeptMassreco->Sumw2();
+  
+  //resolution
+  JetRes        = fs->make<TH1F>("JetRes","JetRes",50,-1.,1.); JetRes->Sumw2();
+  JetRes2D        = fs->make<TH2F>("JetRes2D","JetRes2D",200,0.,2000.,200,0.,2000.); JetRes2D->Sumw2();
+  JetResponse        = fs->make<TH1F>("JetResponse","JetResponse",50,0.,2.); JetResponse->Sumw2();
+
 }
 
 
@@ -126,9 +136,11 @@ void Analysis_Template_MCFastSim::analyze(edm::Event const& iEvent, edm::EventSe
   std::vector<float>* GenJetPt_ = 0;
   std::vector<float>* GenJetEta_ = 0;
   std::vector<float>* GenJetPhi_ = 0;
+  std::vector<float>* GenJetMass_ = 0;
   mTree->SetBranchAddress("GenJetPt",&GenJetPt_);
   mTree->SetBranchAddress("GenJetEta",&GenJetEta_);
   mTree->SetBranchAddress("GenJetPhi",&GenJetPhi_);
+  mTree->SetBranchAddress("GenJetMass",&GenJetMass_);
   //DET JETS
   std::vector<float>* jetPt_   = 0;
   std::vector<float>* jetEta_  = 0;
@@ -498,16 +510,36 @@ void Analysis_Template_MCFastSim::analyze(edm::Event const& iEvent, edm::EventSe
     bool passMatching;
     for(int i=0; i<nGenJets_; i++)
     {
+
+      bool overlaps=false;
+
+      for(int k=0; k<nMuonParticles_; k++){
+	if(DeltaRFS(GenJetEta_->at(i),GenJetPhi_->at(i),MuonParticleEta_->at(k),MuonParticlePhi_->at(k)) < 0.2)
+	  {
+	    overlaps = true;
+	  }
+      }
+      
+      if(overlaps) continue;
+      
+      if(GenJetPt_->at(i)<100) continue;
       GenJetPt->Fill(GenJetPt_->at(i),hweight);
       GenJetPt_total ->Fill(GenJetPt_ ->at(i));         //no weight for efficiency calculation
       GenJetEta->Fill(GenJetEta_->at(i),hweight);
       GenJetPhi->Fill(GenJetPhi_->at(i),hweight);
       passMatching = false;
+
       for(int k=0; k<nJets_; k++)
       {
+	//if(jetPt_->at(k)<100) continue;
         if(DeltaRFS(GenJetEta_->at(i),GenJetPhi_->at(i),jetEta_->at(k),jetPhi_->at(k)) < 0.2)
         {
           passMatching = true;
+	  double resolution = (GenJetPt_->at(i)-jetPt_->at(k))/GenJetPt_->at(i);
+	  JetRes2D->Fill(GenJetPt_->at(i),jetPt_->at(k),hweight);
+	  JetRes->Fill(resolution,hweight);
+	  JetResponse->Fill(jetPt_->at(k)/GenJetPt_->at(i),hweight);
+	  continue;
         }
       }
       if(passMatching == true)
@@ -515,24 +547,24 @@ void Analysis_Template_MCFastSim::analyze(edm::Event const& iEvent, edm::EventSe
         GenJetPt_passed->Fill(GenJetPt_->at(i)); //no weight for efficiency calculation
       }
     }
-
+  
     vector <TLorentzVector> Jet_v4;
     
-    for(int j=0; j<nJets_; j++){
-      if(j==7) break;
-      if(jetPt_->at(j)>30 && fabs(jetEta_->at(j))<2.4){
+    for(int j=0; j<nGenJets_; j++){
+      if(j==8) break;
+      if(GenJetPt_->at(j)>30 && fabs(GenJetEta_->at(j))<2.4){
 	TLorentzVector jet_v4_temp;
-	jet_v4_temp.SetPtEtaPhiM(jetPt_->at(j),jetEta_->at(j),jetPhi_->at(j),jetMass_->at(j));
+	jet_v4_temp.SetPtEtaPhiM(GenJetPt_->at(j),GenJetEta_->at(j),GenJetPhi_->at(j),GenJetMass_->at(j));
 	Jet_v4.push_back(jet_v4_temp);
       }
     }
-
-    vector <TLorentzVector> Jet_v4_bflavour;
+  
+    /*vector <TLorentzVector> Jet_v4_bflavour;
     vector <TLorentzVector> Jet_v4_otherflavour;
     
-    for(int j=0; j<nJets_; j++){
+    for(int j=0; j<nGenJets_; j++){
       if(j==7) break;
-      if(jetPt_->at(j)>30 && fabs(jetEta_->at(j))<2.4 && fabs(jetHadronFlavour_->at(j))==5){
+      if(GenJetPt_->at(j)>30 && fabs(GenJetEta_->at(j))<2.4 && fabs(jetHadronFlavour_->at(j))==5){
 	TLorentzVector jet_v4_temp;
 	jet_v4_temp.SetPtEtaPhiM(jetPt_->at(j),jetEta_->at(j),jetPhi_->at(j),jetMass_->at(j));
 	Jet_v4_bflavour.push_back(jet_v4_temp);
@@ -542,7 +574,7 @@ void Analysis_Template_MCFastSim::analyze(edm::Event const& iEvent, edm::EventSe
 	jet_v4_temp.SetPtEtaPhiM(jetPt_->at(j),jetEta_->at(j),jetPhi_->at(j),jetMass_->at(j));
 	Jet_v4_otherflavour.push_back(jet_v4_temp);
       }
-    }
+      }*/
 
     if(Jet_v4.size()<4) continue;
 
@@ -555,22 +587,23 @@ void Analysis_Template_MCFastSim::analyze(edm::Event const& iEvent, edm::EventSe
     vector <TLorentzVector> LQRecos_Lept_v4; 
 
     //calculate the best combination for having the two reco-top (two hadronic)  
-    if(counterSelMu==2 && counterSelEl==0 && selectionPass){
+    if(counterSelMu==2 && counterSelEl==0 && selectionPass && mHadSelection){
       
+      cout<<"here?"<<endl;
       //perhaps here one can use the b-hadron flavour
 
       //cout<<"size "<<Jet_v4_bflavour.size()<<" "<<Jet_v4_otherflavour.size()<<endl;
 
-      for (unsigned int first=0; first<Jet_v4_bflavour.size(); first++){
-	for (unsigned int second=0; second<Jet_v4_otherflavour.size(); second++){
-	  for (unsigned int third=second+1; third<Jet_v4_otherflavour.size(); third++){
-	    Tops_Hadr_Reco_v4.push_back(Jet_v4_bflavour.at(first)+Jet_v4_otherflavour.at(second)+Jet_v4_otherflavour.at(third));//for three jets
-	    Tops_Lept_Reco_v4.push_back(Jet_v4_bflavour.at(first)+Jet_v4_otherflavour.at(second)+Jet_v4_otherflavour.at(third));//for three jets
+      for (unsigned int first=0; first<Jet_v4.size(); first++){
+	for (unsigned int second=first+1; second<Jet_v4.size(); second++){
+	  for (unsigned int third=second+1; third<Jet_v4.size(); third++){
+	    Tops_Hadr_Reco_v4.push_back(Jet_v4.at(first)+Jet_v4.at(second)+Jet_v4.at(third));//for three jets
+	    Tops_Lept_Reco_v4.push_back(Jet_v4.at(first)+Jet_v4.at(second)+Jet_v4.at(third));//for three jets
 	    
-	    for (unsigned int fourth=second+1; fourth<Jet_v4_otherflavour.size(); fourth++){
-	      Tops_Hadr_Reco_v4.push_back(Jet_v4_bflavour.at(first)+Jet_v4_otherflavour.at(second)+Jet_v4_otherflavour.at(third)+Jet_v4_otherflavour.at(fourth));//for fourth jets
-	      Tops_Lept_Reco_v4.push_back(Jet_v4_bflavour.at(first)+Jet_v4_otherflavour.at(second)+Jet_v4_otherflavour.at(third)+Jet_v4_otherflavour.at(fourth));//for fourth jets
-	    }
+	    //for (unsigned int fourth=second+1; fourth<Jet_v4.size(); fourth++){
+	    //  Tops_Hadr_Reco_v4.push_back(Jet_v4.at(first)+Jet_v4.at(second)+Jet_v4.at(third)+Jet_v4.at(fourth));//for fourth jets
+	    //  Tops_Lept_Reco_v4.push_back(Jet_v4.at(first)+Jet_v4.at(second)+Jet_v4.at(third)+Jet_v4.at(fourth));//for fourth jets
+	    //}
 	  }
 	}
       
@@ -608,7 +641,7 @@ void Analysis_Template_MCFastSim::analyze(edm::Event const& iEvent, edm::EventSe
     vector <TLorentzVector> neutrino_v4;
     TLorentzVector electron_v4;
   
-    if(counterSelMu==2 && counterSelEl>=1 && selectionPass){
+    if(counterSelMu>=2 && counterSelEl>=1 && selectionPass && mElSelection){
 
       //if(!selectionPass || nElecs_<1) continue;
       electronChannel=true;
@@ -670,14 +703,11 @@ void Analysis_Template_MCFastSim::analyze(edm::Event const& iEvent, edm::EventSe
       //define the four vectors of all jets
   
       //calculate the best combination for having the two reco-top (one leptonic and one hadronic)  
-      vector <TLorentzVector> Tops_Lept_Reco_v4;
-      vector <TLorentzVector> Tops_Hadr_Reco_v4;
-      
       
       //for(unsigned int i=0; i<wboson_v4.size(); i++){
       //cout<<"wmass "<<i<<" "<<wboson_v4.at(i).M()<<endl;
       //}
-
+      
       for (unsigned int first=0; first<Jet_v4.size(); first++){
 	//Leptonic top
 	for(unsigned int i=0; i<wboson_v4.size(); i++){
@@ -704,8 +734,6 @@ void Analysis_Template_MCFastSim::analyze(edm::Event const& iEvent, edm::EventSe
 
       //we have now all possible tops and we can calculate the reconstructed LQ mass
       //the constrain is that the muon and the electron needs to be oppositely charged
-      vector <TLorentzVector> LQRecos_Hadr_v4;
-      vector <TLorentzVector> LQRecos_Lept_v4;
       
       for (int i = 0; i<2; i++){
 	//LQ from leptonic top
@@ -732,7 +760,128 @@ void Analysis_Template_MCFastSim::analyze(edm::Event const& iEvent, edm::EventSe
 
     //END OF LEPTONIC PART
   
+    bool muonChannel=false;
+
     //CASE OF THREE MUONS (muonic decay of one of the tops)     
+    if(counterSelMu>=3 && counterSelEl==0 && selectionPass && mMuSelection){
+
+      //if(!selectionPass || nElecs_<1) continue;
+      muonChannel=true;
+
+      //Top mass reconstruction
+      //simple case: electron in the final state
+      
+      //select an electron and you have the four momentum
+    
+      if(muonPt_->at(2)<30 || fabs(muonEta_->at(2))>2.4) continue;
+
+      for(int muonloop1=0; muonloop1<3; muonloop1++){
+      
+	//we call electron what is used to reconstruct a W (in this case it's a muon)
+	electron_v4.SetPtEtaPhiM(muonPt_->at(muonloop1),muonEta_->at(muonloop1),muonPhi_->at(muonloop1),0.105658);
+      
+	//define the neutrino from the MET
+	float metPx = MET * cos(METphi);
+	float metPy = MET * sin(METphi); 
+	
+	const float mass_w = 80.399;
+	float mu = mass_w * mass_w / 2 + electron_v4.Px() * metPx + electron_v4.Py() * metPy;//scalar product between lepton and neutrino
+	float A = - (electron_v4.E() * electron_v4.E());
+	float B = mu * electron_v4.Pz();
+	float C = mu * mu - electron_v4.E() * electron_v4.E() * (MET * MET);
+	float discriminant = B * B - A * C;
+      
+	if (0 >= discriminant) {
+	  // Take only real part of the solution for pz:
+	  TLorentzVector solution;
+	  solution.SetPxPyPzE(metPx,metPy,-B / A,0);
+	  solution.SetE(solution.P());
+	  //neutrino_v4.push_back(solution);
+	  solution.SetPxPyPzE(metPx,metPy,-B / A,solution.E());
+	  neutrino_v4.push_back(solution);
+	}
+	else {
+	  discriminant = sqrt(discriminant);
+	  TLorentzVector solution;
+	  solution.SetPxPyPzE(metPx,metPy,(-B - discriminant) / A,0);
+	  solution.SetE(solution.P());
+	  solution.SetPxPyPzE(metPx,metPy,(-B - discriminant) / A,solution.E());
+	  neutrino_v4.push_back(solution);
+	  
+	  TLorentzVector solution2;
+	  solution2.SetPxPyPzE(metPx,metPy,(-B + discriminant) / A,0);
+	  solution2.SetE(solution2.P());
+	  solution2.SetPxPyPzE(metPx,metPy,(-B + discriminant) / A,solution2.E());
+	  neutrino_v4.push_back(solution2);
+	  
+	}
+
+	//neutrino_v4.SetPtEtaPhiM(MET,METeta,METphi,0.);
+      
+	//define the W system
+	for(unsigned int j=0; j<neutrino_v4.size(); j++){
+	  wboson_v4.push_back(electron_v4+neutrino_v4.at(j));
+	}
+      
+	//now you need to associate the W system to the different jets in the system
+	//define the four vectors of all jets
+	
+	//calculate the best combination for having the two reco-top (one leptonic and one hadronic)  
+      
+	for (unsigned int first=0; first<Jet_v4.size(); first++){
+	  //Leptonic top
+	  for(unsigned int i=0; i<wboson_v4.size(); i++){
+	  
+	    TLorentzVector top_v4_temp=wboson_v4.at(i)+Jet_v4.at(first);//for single jets
+	    Tops_Lept_Reco_v4.push_back(top_v4_temp);
+	  }
+	  
+	  for (unsigned int second=first+1; second<Jet_v4.size(); second++){
+	    for(unsigned int i=0; i<wboson_v4.size(); i++){
+	      Tops_Lept_Reco_v4.push_back(wboson_v4.at(i)+Jet_v4.at(first)+Jet_v4.at(second));//for dijets
+	    }
+	    //Hadronic top
+	    for (unsigned int third=second+1; third<Jet_v4.size(); third++){
+	      Tops_Hadr_Reco_v4.push_back(Jet_v4.at(first)+Jet_v4.at(second)+Jet_v4.at(third));//for three jets
+	      
+	      for (unsigned int fourth=third+1; fourth<Jet_v4.size(); fourth++){
+		Tops_Hadr_Reco_v4.push_back(Jet_v4.at(first)+Jet_v4.at(second)+Jet_v4.at(third)+Jet_v4.at(fourth));//for fourth jets
+	      }
+	    }
+	  }
+	}
+
+	//we have now all possible tops and we can calculate the reconstructed LQ mass
+	//the constrain is that the muon and the electron needs to be oppositely charged
+	
+	for (int muonloop2 = 0; muonloop2<3; muonloop2++){
+	  //LQ from leptonic top
+	  if(muonloop1==muonloop2) continue;
+
+	  if(muonCharge_->at(muonloop2)!=muonCharge_->at(muonloop1)){     
+	    for (unsigned int j=0; j<Tops_Lept_Reco_v4.size(); j++){
+	      TLorentzVector muon_to_associate_v4_temp;
+	      muon_to_associate_v4_temp.SetPtEtaPhiM(muonPt_->at(muonloop2),muonEta_->at(muonloop2),muonPhi_->at(muonloop2),0.105658);
+	      TLorentzVector LQRecos_v4_temp = Tops_Lept_Reco_v4.at(j)+muon_to_associate_v4_temp;
+	      LQRecos_Lept_v4.push_back(LQRecos_v4_temp);
+	    }
+	  }
+	  
+	  //LQ from hadronic top
+	  else{
+	    for (unsigned int j=0; j<Tops_Hadr_Reco_v4.size(); j++){
+	      TLorentzVector muon_to_associate_v4_temp;
+	      muon_to_associate_v4_temp.SetPtEtaPhiM(muonPt_->at(muonloop2),muonEta_->at(muonloop2),muonPhi_->at(muonloop2),0.105658);
+	      TLorentzVector LQRecos_v4_temp = Tops_Hadr_Reco_v4.at(j)+muon_to_associate_v4_temp;
+	      LQRecos_Hadr_v4.push_back(LQRecos_v4_temp);
+	    }
+	  }
+	}
+      }
+    }
+    
+    //END OF THREE MUONS PART
+
 
     //defintion of the chi2
     const double mass_thad = 174.;
@@ -758,6 +907,8 @@ void Analysis_Template_MCFastSim::analyze(edm::Event const& iEvent, edm::EventSe
 
     double LQHadrMass=-10;
     double LQLeptMass=-10;
+
+    //cout<<Tops_Lept_Reco_v4.size()<<" "<<Tops_Hadr_Reco_v4.size()<<" "<<LQRecos_Hadr_v4.size()<<" "<<LQRecos_Lept_v4.size()<<endl;
   
     for (unsigned int j=0; j<Tops_Lept_Reco_v4.size(); j++){
       double chi2_top_lept = pow((Tops_Lept_Reco_v4.at(j).M() - mass_tlep) / mass_tlep_sigma, 2);
@@ -773,6 +924,9 @@ void Analysis_Template_MCFastSim::analyze(edm::Event const& iEvent, edm::EventSe
 	    double chi2_MLQdiff_rel = pow(((LQRecos_Hadr_v4.at(t).M() - LQRecos_Lept_v4.at(g).M())/mass_LQ_mean_rec - mass_LQ_diff_rel) / mass_LQ_diff_rel_sigma, 2);
 
 	    double chi2_total_temp = chi2_thad+chi2_MLQdiff_rel+chi2_top_lept;
+
+	    //cout<<chi2_total_temp<<endl;
+
 	    if (chi2_total_temp<chi2_total){
 	      chi2_total=chi2_total_temp;
 	      LQHadrMass=LQRecos_Hadr_v4.at(t).M();
@@ -781,6 +935,7 @@ void Analysis_Template_MCFastSim::analyze(edm::Event const& iEvent, edm::EventSe
 	      LQRecos_Lept_rec_mass=LQRecos_Lept_v4.at(g).M();
 	      Top_Hadr_rec_mass=Tops_Hadr_Reco_v4.at(i).M();
 	      Top_Lept_rec_mass=Tops_Lept_Reco_v4.at(j).M();
+
 	    }
 	  }
 	}
@@ -794,7 +949,7 @@ void Analysis_Template_MCFastSim::analyze(edm::Event const& iEvent, edm::EventSe
     LQHadrMassreco->Fill(LQHadrMass,hweight);
     LQLeptMassreco->Fill(LQLeptMass,hweight);
     
-    if(electronChannel){
+    if(electronChannel || muonChannel){
       double Wmass=wboson_v4.at(0).M();
       if(wboson_v4.size()>1){
 	if(fabs(Wmass-80.399)>fabs(wboson_v4.at(1).M()-80.399)){
@@ -827,9 +982,9 @@ void Analysis_Template_MCFastSim::analyze(edm::Event const& iEvent, edm::EventSe
 
   //JET MATCHING EFFICIENCY PLOT
   //If the denominator becomes 0 or pass > total, the corresponding bin is skipped -> change plot range or binning!
-  TGraphAsymmErrors jetMatchEff = TGraphAsymmErrors(GenJetPt_passed,GenJetPt_total);
-  cout << "jetMatchEff successfully computed" << endl;
-  jetMatchEff.Write("jetMatchEff");
+  //TGraphAsymmErrors jetMatchEff = TGraphAsymmErrors(GenJetPt_passed,GenJetPt_total);
+  //cout << "jetMatchEff successfully computed" << endl;
+  //jetMatchEff.Write("jetMatchEff");
 
   
 
