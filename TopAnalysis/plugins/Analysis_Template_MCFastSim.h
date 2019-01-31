@@ -33,8 +33,54 @@ float DeltaRFS(float eta1, float phi1, float eta2, float phi2)
 	return TMath::Sqrt(deltaEta * deltaEta + deltaPhi * deltaPhi);
 }
 
+vector <TLorentzVector> WbosonReconstruction(TLorentzVector electron_v4, float metPx, float metPy, float MET){
+
+  vector <TLorentzVector> neutrino_v4;
+
+  const float mass_w = 80.399;
+  float mu = mass_w * mass_w / 2 + electron_v4.Px() * metPx + electron_v4.Py() * metPy;//scalar product between lepton and neutrino
+  float A = - (electron_v4.E() * electron_v4.E());
+  float B = mu * electron_v4.Pz();
+  float C = mu * mu - electron_v4.E() * electron_v4.E() * (MET * MET);
+  float discriminant = B * B - A * C;
+  
+  if (0 >= discriminant) {
+    // Take only real part of the solution for pz:
+    TLorentzVector solution;
+    solution.SetPxPyPzE(metPx,metPy,-B / A,0);
+    solution.SetE(solution.P());
+    //neutrino_v4.push_back(solution);
+    solution.SetPxPyPzE(metPx,metPy,-B / A,solution.E());
+    neutrino_v4.push_back(solution);
+  }
+  else {
+    discriminant = sqrt(discriminant);
+    TLorentzVector solution;
+    solution.SetPxPyPzE(metPx,metPy,(-B - discriminant) / A,0);
+    solution.SetE(solution.P());
+    solution.SetPxPyPzE(metPx,metPy,(-B - discriminant) / A,solution.E());
+    neutrino_v4.push_back(solution);
+    
+    TLorentzVector solution2;
+    solution2.SetPxPyPzE(metPx,metPy,(-B + discriminant) / A,0);
+    solution2.SetE(solution2.P());
+    solution2.SetPxPyPzE(metPx,metPy,(-B + discriminant) / A,solution2.E());
+    neutrino_v4.push_back(solution2);
+    
+  }
+
+  vector <TLorentzVector> wboson_v4; 
+
+  for(unsigned int j=0; j<neutrino_v4.size(); j++){
+    wboson_v4.push_back(electron_v4+neutrino_v4.at(j));
+  }
+
+  return wboson_v4;
+}
+
 class Analysis_Template_MCFastSim : public edm::EDAnalyzer
 {
+
 
 
 
@@ -54,6 +100,9 @@ private:
 	int    mJetID;        // looseID==1 tightID==2
 	int    mprintOk;       // noPrint=0  Print=1
 	bool mIsMCarlo;
+	bool mElSelection;
+	bool mMuSelection;
+	bool mHadSelection;
 	double mCrossSection;
 	double mIntLumi;
 	vector<std::string> mTriggers;
@@ -119,6 +168,9 @@ private:
 	TH1F* LQHadrMassreco;
 	TH1F* LQLeptMassreco;
 
+	TH1F* JetRes;
+	TH2F* JetRes2D;
+	TH1F* JetResponse;
 
 };
 
