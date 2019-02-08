@@ -1,0 +1,8 @@
+executable          = submitS1-3.sh
+transfer_executable = True
+universe            = vanilla
+output              = condor$(Cluster)_$(Process).out
+error               = condor$(Cluster)_$(Process).error
+log                 = condor$(Cluster)_$(Process).log
+arguments = $(Process)
+queue 10
