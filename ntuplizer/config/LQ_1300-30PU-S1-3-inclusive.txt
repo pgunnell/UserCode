@@ -1,0 +1,20 @@
+[config-begin]
+
+    Outputdir  = /nfs/dust/cms/user/gunnep/DelphesAnalysis/ntuplizer/outputInclusive
+    Outputfile = outputfile.root
+    Lumi       = 1
+    
+    Testmode   = false
+
+    Maxchilds  = 1
+    
+    Samplesdir = /nfs/dust/cms/user/gunnep/GridpackGen/CMSSW_9_1_0_pre3/src/delphes/
+    
+[config-end]
+
+
+[inputfiles-begin]
+
+ Output30PU-S13-inclusive/           , LG_1300_S13,       1, 1, 1, 1
+ 
+[inputfiles-end]
