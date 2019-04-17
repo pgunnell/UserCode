@@ -35,22 +35,25 @@ void ntupleQCD::analyze(size_t childid /* this info can be used for printouts */
 	 * is used to run directly in Delphes output.
 	 * For skimmed ntuples, see below
 	 */
-	d_ana::dBranchHandler<Electron> elecs(tree(),"Electron");
+
 	/*
 	 * Other branches might be the following
 	 * (for a full list, please inspect the Delphes sample root file with root)
 	 * For the Delphes class description, see $DELPHES_PATH/classes/DelphesClasses.h
 	 */
 	//
+
+	d_ana::dBranchHandler<Electron> elecs(tree(),"Electron");
 	d_ana::dBranchHandler<HepMCEvent>  event(tree(),"Event");
 	d_ana::dBranchHandler<GenParticle> genpart(tree(),"Particle");
-	d_ana::dBranchHandler<Jet>         genjet(tree(),"GenJet");
 	d_ana::dBranchHandler<Jet>         jet(tree(),"Jet");
+	d_ana::dBranchHandler<Jet>         genjet(tree(),"GenJet");
 	d_ana::dBranchHandler<Muon>        muontight(tree(),"MuonTight");
 	d_ana::dBranchHandler<Muon>        muonloose(tree(),"MuonLoose");
-	d_ana::dBranchHandler<Photon>      photon(tree(),"Photon");
 	d_ana::dBranchHandler<MissingET>   met(tree(),"MissingET");
-
+	d_ana::dBranchHandler<MissingET>   genmet(tree(),"GenMissingET");
+	d_ana::dBranchHandler<ScalarHT>   scalarHt(tree(),"ScalarHT");
+	d_ana::dBranchHandler<Vertex>   vertex(tree(),"Vertex");
 
 	/* ==SKIM==
 	 *
@@ -82,7 +85,7 @@ void ntupleQCD::analyze(size_t childid /* this info can be used for printouts */
 	 * the tree.
 	 * The output files will be written automatically, and a config file will be created.
 	 */
-	TTree* myskim=addTree();
+	TTree* myskim = addTree();
 	/*
 	 * Add a simple branch to the skim
 	 */
@@ -96,49 +99,118 @@ void ntupleQCD::analyze(size_t childid /* this info can be used for printouts */
 	myskim->Branch("muonEta","vector<float>" ,&muonEta);
 	myskim->Branch("muonPhi","vector<float>" ,&muonPhi);
 
+	std::vector<float> elecIsoVar; 	std::vector<float> elecIsoVarRhoCorr; std::vector<float> elecSumPtCharged; std::vector<float> elecSumPtNeutral; std::vector<float> elecSumPtChargedPU; std::vector<float> elecSumPt; std::vector<int> elecCharge;
+
+	myskim->Branch("elecIsoVar","vector<float>" ,&elecIsoVar);
+	myskim->Branch("elecIsoVarRhoCorr","vector<float>" ,&elecIsoVarRhoCorr);
+	myskim->Branch("elecSumPtCharged","vector<float>" ,&elecSumPtCharged);
+	myskim->Branch("elecSumPtNeutral","vector<float>" ,&elecSumPtNeutral);
+	myskim->Branch("elecSumPtChargedPU","vector<float>" ,&elecSumPtChargedPU);
+	myskim->Branch("elecSumPt","vector<float>" ,&elecSumPt);
+	myskim->Branch("elecCharge","vector<int>" ,&elecCharge);
+
+
+	std::vector<float> muonIsoVar; 	std::vector<float> muonIsoVarRhoCorr; std::vector<float> muonSumPtCharged; std::vector<float> muonSumPtNeutral; std::vector<float> muonSumPtChargedPU; std::vector<float> muonSumPt; std::vector<int> muonCharge;
+
+	myskim->Branch("muonIsoVar","vector<float>" ,&muonIsoVar);
+	myskim->Branch("muonIsoVarRhoCorr","vector<float>" ,&muonIsoVarRhoCorr);
+	myskim->Branch("muonSumPtCharged","vector<float>" ,&muonSumPtCharged);
+	myskim->Branch("muonSumPtNeutral","vector<float>" ,&muonSumPtNeutral);
+	myskim->Branch("muonSumPtChargedPU","vector<float>" ,&muonSumPtChargedPU);
+	myskim->Branch("muonSumPt","vector<float>" ,&muonSumPt);
+	myskim->Branch("muonCharge","vector<int>" ,&muonCharge);
+
 	//jets
 
-        std::vector<float> pt_;         std::vector<float> btag_ ;         std::vector<float> eta_;           std::vector<float> phi_;         std::vector<float> mass_;          std::vector<float> massSoftDrop_;    std::vector<float> jetflavour_ ;
-	std::vector<float> tau1_;       std::vector<float> tau2_;          std::vector<float> tau3_; 
+        std::vector<float> pt_;         std::vector<float> btag_ ;  std::vector<float> btagAlgo_ ;         std::vector<float> eta_;           std::vector<float> phi_;         std::vector<float> mass_;      std::vector<float> jetflavour_ ; std::vector<float> jetTauTag_ ;
 
 	myskim->Branch("jetPt"                ,"vector<float>"     ,&pt_);
 	myskim->Branch("jetBtag"              ,"vector<float>"     ,&btag_);  
+	myskim->Branch("jetBtagAlgo"              ,"vector<float>"     ,&btagAlgo_);  
 	myskim->Branch("jetEta"               ,"vector<float>"     ,&eta_);
 	myskim->Branch("jetPhi"               ,"vector<float>"     ,&phi_);
 	myskim->Branch("jetMass"              ,"vector<float>"     ,&mass_);
-	myskim->Branch("jetMassSoftDrop"      ,"vector<float>"     ,&massSoftDrop_);
-	myskim->Branch("jetTau1"              ,"vector<float>"     ,&tau1_);
-	myskim->Branch("jetTau2"              ,"vector<float>"     ,&tau2_);
-	myskim->Branch("jetTau3" ,"vector<float>" ,&tau3_);
 	myskim->Branch("jetFlavorHadron" ,"vector<float>" ,&jetflavour_);
+	myskim->Branch("jetTauTag" ,"vector<float>" ,&jetTauTag_);
 
-	//gen jets
+        std::vector<float> GenJetpt_;    std::vector<float> GenJeteta_;           std::vector<float> GenJetphi_;      std::vector<float> GenJetMass_;     
 
-	std::vector<float> genjetpt_;         std::vector<float> genjetflavour_ ;         std::vector<float> genjeteta_;           std::vector<float> genjetphi_;         std::vector<float> genjetmass_;          std::vector<float> genjetmassSoftDrop_;    
-	std::vector<float> genjettau1_;       std::vector<float> genjettau2_;          std::vector<float> genjettau3_; 
+	myskim->Branch("GenJetPt"                ,"vector<float>"     ,&GenJetpt_);
+	myskim->Branch("GenJetEta"               ,"vector<float>"     ,&GenJeteta_);
+	myskim->Branch("GenJetPhi"               ,"vector<float>"     ,&GenJetphi_); 
+	myskim->Branch("GenJetMass"               ,"vector<float>"     ,&GenJetMass_); 
 
-	
-	myskim->Branch("genjetPt"                ,"vector<float>"     ,&genjetpt_);
-	myskim->Branch("genjetFlavour"              ,"vector<float>"     ,&genjetflavour_);  
-	myskim->Branch("genjetEta"               ,"vector<float>"     ,&genjeteta_);
-	myskim->Branch("genjetPhi"               ,"vector<float>"     ,&genjetphi_);
-	myskim->Branch("genjetMass"              ,"vector<float>"     ,&genjetmass_);
-	myskim->Branch("genjetMassSoftDrop"      ,"vector<float>"     ,&genjetmassSoftDrop_);
-	myskim->Branch("genjetTau1"              ,"vector<float>"     ,&genjettau1_);
-	myskim->Branch("genjetTau2"              ,"vector<float>"     ,&genjettau2_);
-	myskim->Branch("genjetTau3" ,"vector<float>" ,&genjettau3_);
-	
+	std::vector<float> GenParticlept_;    std::vector<float> GenParticleeta_;           std::vector<float> GenParticlephi_;     std::vector<int> GenParticleid_;     std::vector<float> GenParticleMass_;     
+
+	myskim->Branch("GenParticlePt"                ,"vector<float>"     ,&GenParticlept_);
+	myskim->Branch("GenParticleEta"               ,"vector<float>"     ,&GenParticleeta_);
+	myskim->Branch("GenParticlePhi"               ,"vector<float>"     ,&GenParticlephi_);
+	myskim->Branch("GenParticleId"               ,"vector<int>"     ,&GenParticleid_);
+	myskim->Branch("GenParticleMass"               ,"vector<float>"     ,&GenParticleMass_);
+
+	std::vector<float> MuonParticlept_;    std::vector<float> MuonParticleeta_;           std::vector<float> MuonParticlephi_;     std::vector<int> MuonParticleid_;     std::vector<float> MuonParticleMass_;     std::vector<int> MuonParticleStatus_;
+
+	myskim->Branch("MuonParticlePt"                ,"vector<float>"     ,&MuonParticlept_);
+	myskim->Branch("MuonParticleEta"               ,"vector<float>"     ,&MuonParticleeta_);
+	myskim->Branch("MuonParticlePhi"               ,"vector<float>"     ,&MuonParticlephi_);
+	myskim->Branch("MuonParticleId"               ,"vector<int>"     ,&MuonParticleid_);
+	myskim->Branch("MuonParticleMass"               ,"vector<float>"     ,&MuonParticleMass_);
+	myskim->Branch("MuonParticleStatus"               ,"vector<int>"     ,&MuonParticleStatus_);
+
+	std::vector<float> LeptoQuarkParticlept_;    std::vector<float> LeptoQuarkParticleeta_;           std::vector<float> LeptoQuarkParticlephi_;     std::vector<int> LeptoQuarkParticleid_;     std::vector<float> LeptoQuarkParticleMass_;     
+
+	myskim->Branch("LeptoQuarkParticlePt"                ,"vector<float>"     ,&LeptoQuarkParticlept_);
+	myskim->Branch("LeptoQuarkParticleEta"               ,"vector<float>"     ,&LeptoQuarkParticleeta_);
+	myskim->Branch("LeptoQuarkParticlePhi"               ,"vector<float>"     ,&LeptoQuarkParticlephi_);
+	myskim->Branch("LeptoQuarkParticleId"               ,"vector<int>"     ,&LeptoQuarkParticleid_);
+	myskim->Branch("LeptoQuarkParticleMass"               ,"vector<float>"     ,&LeptoQuarkParticleMass_);
+
+	std::vector<float> TopParticlept_;    std::vector<float> TopParticleeta_;           std::vector<float> TopParticlephi_;     std::vector<int> TopParticleid_;     std::vector<float> TopParticleMass_;     
+
+	myskim->Branch("TopParticlePt"                ,"vector<float>"     ,&TopParticlept_);
+	myskim->Branch("TopParticleEta"               ,"vector<float>"     ,&TopParticleeta_);
+	myskim->Branch("TopParticlePhi"               ,"vector<float>"     ,&TopParticlephi_);
+	myskim->Branch("TopParticleId"               ,"vector<int>"     ,&TopParticleid_);
+	myskim->Branch("TopParticleMass"               ,"vector<float>"     ,&TopParticleMass_);
+
+	//MET
+	float METvalue_;
+	float METeta_;
+	float METphi_;
+
+	myskim->Branch("MET"                   ,&METvalue_,"METvalue_/F");
+	myskim->Branch("METeta"                ,&METeta_,"METeta_/F" );
+	myskim->Branch("METphi"                ,&METphi_,"METphi_/F" );
+
+	float GenMETvalue_;
+	float GenMETeta_;
+	float GenMETphi_;
+
+	myskim->Branch("GenMET"                   ,&GenMETvalue_,"GenMETvalue_/F");
+	myskim->Branch("GenMETeta"                ,&GenMETeta_,"GenMETeta_/F" );
+	myskim->Branch("GenMETphi"                ,&GenMETphi_,"GenMETphi_/F" );
+
+	//Scalar HT
+	float ScalarHTvalue_;
+	myskim->Branch("ScalarHT"                ,&ScalarHTvalue_,"ScalarHTvalue_/F");
+
+	int NVertex_; std::vector<float> VertexX_;    std::vector<float> VertexY_;           std::vector<float> VertexZ_;
+	myskim->Branch("nVertex"                ,&NVertex_,"nVertex_/I");
+	myskim->Branch("VertexX"                ,"vector<float>"  ,&VertexX_);
+	myskim->Branch("VertexY"                ,"vector<float>"  ,&VertexY_);
+	myskim->Branch("VertexZ"                ,"vector<float>"  ,&VertexZ_);
+
 	/*
 	 * Or store a vector of objects (also possible to store only one object)
 	 */
 	//std::vector<Electron> skimmedelecs; //commented PG
 	//myskim->Branch("Electrons",&skimmedelecs); //commented PG
 
-
 	size_t nevents=tree()->entries();
 	if(isTestMode())
 		nevents/=100;
 	for(size_t eventno=0;eventno<nevents;eventno++){
+	
 	  /*
 	   * The following two lines report the status and set the event link
 	   * Do not remove!
@@ -149,59 +221,147 @@ void ntupleQCD::analyze(size_t childid /* this info can be used for printouts */
 	  /*
 	   * Begin the event-by-event analysis
 	   */
-	  //commented by PG
-	  //for(size_t i=0;i<elecs.size();i++){
-	    //histo->Fill(elecs.at(i)->PT);
-	  //}
 
 	  /*
 	   * Or to fill the skim
 	   */
-	  //skimmedelecs.clear(); //commented by PG
+
+	  NVertex_=0;
+
+	  for(size_t i=0;i<vertex.size();i++){
+	    NVertex_++;
+	    VertexX_.push_back(vertex.at(i)->X);
+	    VertexY_.push_back(vertex.at(i)->Y);
+	    VertexZ_.push_back(vertex.at(i)->Z);
+	  }
+
 	  for(size_t i=0;i<elecs.size();i++){
 	    //flat info
+	    if (fabs(elecs.at(i)->Eta) > 2.8 || (fabs(elecs.at(i)->Eta) > 1.4442 && fabs(elecs.at(i)->Eta) < 1.5660)) continue;
+	    if (elecs.at(i)->PT < 30.) continue;
+	    if (elecs.at(i)->IsolationVar > 0.14) continue;
 	    //added by PG
 	    elecPt.push_back(elecs.at(i)->PT);
 	    elecEta.push_back(elecs.at(i)->Eta); 
 	    elecPhi.push_back(elecs.at(i)->Phi); 
-	    //if(elecs.at(i)->PT < 20) continue;
-	    //or objects
-	    //skimmedelecs.push_back(*elecs.at(i)); //commented by PG
+	    //isolation variables
+	    elecIsoVar.push_back(elecs.at(i)->IsolationVar); 
+	    elecIsoVarRhoCorr.push_back(elecs.at(i)->IsolationVarRhoCorr); 
+	    elecSumPtCharged.push_back(elecs.at(i)->SumPtCharged); 
+	    elecSumPtNeutral.push_back(elecs.at(i)->SumPtNeutral); 
+	    elecSumPtChargedPU.push_back(elecs.at(i)->SumPtChargedPU); 
+	    elecSumPt.push_back(elecs.at(i)->SumPt); 
+	    elecCharge.push_back(elecs.at(i)->Charge); 
 	  }
 
 	  for(size_t i=0;i<muontight.size();i++){
 	    //flat info
 	    //added by PG
+	    if (fabs(muontight.at(i)->Eta) > 2.8) continue;
+            if (muontight.at(i)->PT < 30.) continue;
+            if (muontight.at(i)->IsolationVar > 0.14) continue;
 	    muonPt.push_back(muontight.at(i)->PT);
 	    muonEta.push_back(muontight.at(i)->Eta); 
 	    muonPhi.push_back(muontight.at(i)->Phi); 
+	    //isolation variables
+	    muonIsoVar.push_back(muontight.at(i)->IsolationVar); 
+	    muonIsoVarRhoCorr.push_back(muontight.at(i)->IsolationVarRhoCorr); 
+	    muonSumPtCharged.push_back(muontight.at(i)->SumPtCharged); 
+	    muonSumPtNeutral.push_back(muontight.at(i)->SumPtNeutral); 
+	    muonSumPtChargedPU.push_back(muontight.at(i)->SumPtChargedPU); 
+	    muonSumPt.push_back(muontight.at(i)->SumPt); 
+	    muonCharge.push_back(muontight.at(i)->Charge); 
 	  }
-
+	
 	  for(size_t i=0;i<jet.size();i++){
-	    //flat info
-	    //added by PG
+	    bool overlaps = false;
+	    for (size_t j = 0; j < elecs.size(); j++) {
+	      if (fabs(jet.at(i)->PT-elecs.at(j)->PT) < 0.01*elecs.at(j)->PT && elecs.at(j)->P4().DeltaR(jet.at(i)->P4()) < 0.01) {
+		overlaps = true;
+		break;
+	      }
+	    }
+	    if (overlaps) continue;
+	    for (size_t j = 0; j < muontight.size(); j++) {
+	      if (fabs(jet.at(i)->PT-muontight.at(j)->PT) < 0.01*muontight.at(j)->PT && muontight.at(j)->P4().DeltaR(jet.at(i)->P4()) < 0.01) {
+		overlaps = true;
+		break;
+	      }
+	    }
+	    if (overlaps) continue;
+
 	    pt_.push_back(jet.at(i)->PT);
 	    eta_.push_back(jet.at(i)->Eta); 
 	    phi_.push_back(jet.at(i)->Phi); 
 	    mass_.push_back(jet.at(i)->Mass); 
+	    jetTauTag_.push_back(jet.at(i)->TauTag); 
 	    jetflavour_.push_back(jet.at(i)->Flavor);
 	    btag_.push_back(jet.at(i)->BTag);
+	    btagAlgo_.push_back(jet.at(i)->BTagAlgo);
 	  }
 
 	  for(size_t i=0;i<genjet.size();i++){
 	    //flat info
 	    //added by PG
-	    genjetpt_.push_back(genjet.at(i)->PT);
-	    genjeteta_.push_back(genjet.at(i)->Eta); 
-	    genjetphi_.push_back(genjet.at(i)->Phi); 
-	    genjetmass_.push_back(genjet.at(i)->Mass);
-	    genjetflavour_.push_back(genjet.at(i)->Flavor);
-	    
+	    GenJetpt_.push_back(genjet.at(i)->PT);
+	    GenJeteta_.push_back(genjet.at(i)->Eta); 
+	    GenJetphi_.push_back(genjet.at(i)->Phi); 
+	    GenJetMass_.push_back(genjet.at(i)->Mass); 
 	  }
 
-	  myskim->Fill();
+	  for(size_t i=0;i<genpart.size();i++){
+	    //flat info
+	    if(abs(genpart.at(i)->PID)<=25 && genpart.at(i)->Status<=23 && genpart.at(i)->Status>=22){
+	      GenParticlept_.push_back(genpart.at(i)->PT);
+	      GenParticleeta_.push_back(genpart.at(i)->Eta); 
+	      GenParticlephi_.push_back(genpart.at(i)->Phi); 
+	      GenParticleid_.push_back(genpart.at(i)->PID); 
+	      GenParticleMass_.push_back(genpart.at(i)->Mass); 
 
-	  
+	      //std::cout<<"particle "<<genpart.at(i)->Status<<" "<<genpart.at(i)->PID<<std::endl;
+	    
+	    }
+	    
+	    if(abs(genpart.at(i)->PID)==13){
+	      //std::cout<<"particle "<<genpart.at(i)->Status<<" "<<genpart.at(i)->Mass<<std::endl;
+	      if(genpart.at(i)->Status==23 || genpart.at(i)->Status==51){
+		MuonParticlept_.push_back(genpart.at(i)->PT);
+		MuonParticleeta_.push_back(genpart.at(i)->Eta); 
+		MuonParticlephi_.push_back(genpart.at(i)->Phi); 
+		MuonParticleid_.push_back(genpart.at(i)->PID); 
+		MuonParticleMass_.push_back(genpart.at(i)->Mass); 
+		MuonParticleStatus_.push_back(genpart.at(i)->Status); 
+	      }
+	    }
+
+	    if((abs(genpart.at(i)->PID)>=9000000 && abs(genpart.at(i)->PID)<=9000009 && genpart.at(i)->Status==22) || (abs(genpart.at(i)->PID)==42 && genpart.at(i)->Status==22)){
+	      LeptoQuarkParticlept_.push_back(genpart.at(i)->PT);
+	      LeptoQuarkParticleeta_.push_back(genpart.at(i)->Eta); 
+	      LeptoQuarkParticlephi_.push_back(genpart.at(i)->Phi); 
+	      LeptoQuarkParticleid_.push_back(genpart.at(i)->PID); 
+	      LeptoQuarkParticleMass_.push_back(genpart.at(i)->Mass); 
+	    }
+
+	    if(abs(genpart.at(i)->PID)==6 && genpart.at(i)->Status<=24 && genpart.at(i)->Status>=22){
+	      TopParticlept_.push_back(genpart.at(i)->PT);
+	      TopParticleeta_.push_back(genpart.at(i)->Eta); 
+	      TopParticlephi_.push_back(genpart.at(i)->Phi); 
+	      TopParticleid_.push_back(genpart.at(i)->PID); 
+	      TopParticleMass_.push_back(genpart.at(i)->Mass); 
+	    }
+
+	  }
+
+	  METvalue_=met.at(0)->MET;
+	  METphi_=met.at(0)->Phi;
+	  METeta_=met.at(0)->Eta;
+
+	  GenMETvalue_=genmet.at(0)->MET;
+	  GenMETphi_=genmet.at(0)->Phi;
+	  GenMETeta_=genmet.at(0)->Eta;
+
+	  ScalarHTvalue_=scalarHt.at(0)->HT;
+
 	  /*==SKIM==
 	   * Access the branches of the skim
 	   */
@@ -209,6 +369,74 @@ void ntupleQCD::analyze(size_t childid /* this info can be used for printouts */
 	  //for(size_t i=0;i<skimelecs->size();i++){
 	  //	histo->Fill(skimelecs->at(i).PT);
 	  //}
+		
+	  myskim->Fill();	  
+
+	  pt_ .clear();
+	  eta_.clear();
+	  phi_.clear();
+
+	  GenJetpt_ .clear();
+	  GenJeteta_.clear();
+	  GenJetphi_.clear();
+
+	  GenParticlept_ .clear();
+	  GenParticleeta_.clear();
+	  GenParticlephi_.clear();
+	  GenParticleid_.clear();
+	  GenParticleMass_.clear();
+
+	  MuonParticlept_ .clear();
+	  MuonParticleeta_.clear();
+	  MuonParticlephi_.clear();
+	  MuonParticleid_.clear();
+	  MuonParticleMass_.clear();
+	  MuonParticleStatus_.clear();
+
+	  LeptoQuarkParticlept_ .clear();
+	  LeptoQuarkParticleeta_.clear();
+	  LeptoQuarkParticlephi_.clear();
+	  LeptoQuarkParticleid_.clear();
+	  LeptoQuarkParticleMass_.clear();
+
+	  TopParticlept_ .clear();
+	  TopParticleeta_.clear();
+	  TopParticlephi_.clear();
+	  TopParticleid_.clear();
+	  TopParticleMass_.clear();
+
+	  mass_.clear();
+	  jetflavour_.clear();
+	  jetTauTag_.clear();
+	  btag_.clear();
+	  btagAlgo_.clear();
+	  muonPt.clear();
+	  muonEta.clear();
+	  muonPhi.clear();
+	  elecPt.clear();
+	  elecEta.clear();
+	  elecPhi.clear();
+
+	  elecIsoVar.clear();
+	  elecIsoVarRhoCorr.clear(); 
+	  elecSumPtCharged.clear(); 
+	  elecSumPtNeutral.clear();
+	  elecSumPtChargedPU.clear(); 
+	  elecSumPt.clear(); 
+	  elecCharge.clear();
+
+	  muonIsoVar.clear();
+	  muonIsoVarRhoCorr.clear(); 
+	  muonSumPtCharged.clear(); 
+	  muonSumPtNeutral.clear();
+	  muonSumPtChargedPU.clear(); 
+	  muonSumPt.clear(); 
+	  muonCharge.clear();
+
+	  VertexX_.clear();
+	  VertexY_.clear();
+	  VertexZ_.clear();
+
 	}
 
 	
