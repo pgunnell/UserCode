@@ -28,10 +28,9 @@ BoostedTTbarFlatTreeProducerGenLevel::BoostedTTbarFlatTreeProducerGenLevel(edm::
   genParticlesToken     = consumes<edm::View<reco::GenParticle> >(edm::InputTag("genParticles"));
   GenptMin_             = cfg.getUntrackedParameter<double>("GenptMin");
   GenetaMax_            = cfg.getUntrackedParameter<double>("GenetaMax");
+  weight_vector_        = cfg.getUntrackedParameter<vector <string>>("EFT_weights");
   genEvtInfoToken = consumes<GenEventInfoProduct>(edm::InputTag("generator"));
-  jetFlavourInfosToken_ = consumes<reco::JetFlavourInfoMatchingCollection>( cfg.getParameter<edm::InputTag>("jetFlavourInfos"));
   isHigherOrder_ = cfg.getUntrackedParameter<bool>("isHigherOrder",false);
-  pupInfoToken          = consumes<edm::View<PileupSummaryInfo> >(edm::InputTag("slimmedAddPileupInfo"));
   lheEvtInfoToken = consumes<LHEEventProduct>(edm::InputTag("externalLHEProducer"));
 
   //Gen Jet information
@@ -84,8 +83,6 @@ void BoostedTTbarFlatTreeProducerGenLevel::beginJob()
   GenJeteta_  = new std::vector<float>;
   GenJetenergy_   = new std::vector<float>;
   GenJetmass_   = new std::vector<float>;
-  isBJetGen_   = new std::vector<bool>;
-  isWJetGen_   = new std::vector<bool>;
   
   outTree_->Branch("GenSoftDropMass"       ,"vector<float>"   ,&GenSoftDropMass_);
   outTree_->Branch("GenSoftDropTau32"       ,"vector<float>"   ,&GenSoftDropTau32_);
@@ -98,36 +95,19 @@ void BoostedTTbarFlatTreeProducerGenLevel::beginJob()
   outTree_->Branch("GenJetphi"       ,"vector<float>"   ,&GenJetphi_);
   outTree_->Branch("GenJetenergy"       ,"vector<float>"   ,&GenJetenergy_);
   outTree_->Branch("GenJetmass"       ,"vector<float>"   ,&GenJetmass_);   
-  outTree_->Branch("isBJetGen"       ,"vector<bool>"   ,&isBJetGen_);   
-  outTree_->Branch("isWJetGen"       ,"vector<bool>"   ,&isWJetGen_);   
   
-  GenSubJet1Pt_= new std::vector<float>;
-  GenSubJet2Pt_= new std::vector<float>;
-  GenSubJet1Eta_= new std::vector<float>;
-  GenSubJet2Eta_= new std::vector<float>;
-  GenSubJet1Phi_= new std::vector<float>;
-  GenSubJet2Phi_= new std::vector<float>;
-  GenSubJet1Mass_= new std::vector<float>;
-  GenSubJet2Mass_= new std::vector<float>;
-  
-  outTree_->Branch("GenSubJet1Pt"       ,"vector<float>"   ,&GenSubJet1Pt_);
-  outTree_->Branch("GenSubJet2Pt"       ,"vector<float>"   ,&GenSubJet2Pt_);
-  outTree_->Branch("GenSubJet1Eta"      ,"vector<float>"   ,&GenSubJet1Eta_);
-  outTree_->Branch("GenSubJet2Eta"      ,"vector<float>"   ,&GenSubJet2Eta_);
-  outTree_->Branch("GenSubJet1Phi"      ,"vector<float>"   ,&GenSubJet1Phi_);
-  outTree_->Branch("GenSubJet2Phi"      ,"vector<float>"   ,&GenSubJet2Phi_);
-  outTree_->Branch("GenSubJet1Mass"     ,"vector<float>"   ,&GenSubJet1Mass_);
-  outTree_->Branch("GenSubJet2Mass"     ,"vector<float>"   ,&GenSubJet2Mass_);
-
-  outTree_->Branch("npu"                  ,&npu_               ,"npu_/I");
   outTree_->Branch("genEvtWeight"         ,&genEvtWeight_      ,"genEvtWeight_/F");
   outTree_->Branch("lheOriginalXWGTUP"    ,&lheOriginalXWGTUP_ ,"lheOriginalXWGTUP_/F");
   if (isHigherOrder_) {
     scaleWeights_  = new std::vector<float>;
     pdfWeights_  = new std::vector<float>;
+    EFTWeights_  = new std::vector<float>;
     outTree_->Branch("scaleWeights"         ,"vector<float>"     ,&scaleWeights_);
     outTree_->Branch("pdfWeights"           ,"vector<float>"     ,&pdfWeights_);
+    outTree_->Branch("EFTWeights"           ,"vector<float>"     ,&EFTWeights_);
   }
+
+  printWeights = true;
 
   cout<<"Begin job finished"<<endl;
 }
@@ -153,21 +133,11 @@ void BoostedTTbarFlatTreeProducerGenLevel::endJob()
   delete GenJeteta_;
   delete GenJetenergy_;
   delete GenJetmass_;
-  delete isBJetGen_;
-  delete isWJetGen_;
-
-  delete GenSubJet1Pt_;
-  delete GenSubJet2Pt_;
-  delete GenSubJet1Eta_;
-  delete GenSubJet2Eta_;
-  delete GenSubJet1Phi_;
-  delete GenSubJet2Phi_;
-  delete GenSubJet1Mass_;
-  delete GenSubJet2Mass_;
 
   if (isHigherOrder_) {
     delete scaleWeights_;
     delete pdfWeights_;
+    delete EFTWeights_;
   }
 
 }
@@ -186,8 +156,6 @@ void BoostedTTbarFlatTreeProducerGenLevel::analyze(edm::Event const& iEvent, edm
   initialize();
 
   //---------- mc -----------------------
-  bool cut_GEN(true);
-
   if (!iEvent.isRealData()) { 
     iEvent.getByToken(genEvtInfoToken,genEvtInfo);
     iEvent.getByToken(genParticlesToken,genParticles);
@@ -236,33 +204,40 @@ void BoostedTTbarFlatTreeProducerGenLevel::analyze(edm::Event const& iEvent, edm
 
     if (isHigherOrder_) {
       iEvent.getByToken(lheEvtInfoToken,lheEvtInfo);
-      iEvent.getByToken(pupInfoToken,pupInfo);
 
-      edm::View<PileupSummaryInfo>::const_iterator PUI;
-      for(PUI = pupInfo->begin(); PUI != pupInfo->end(); ++PUI) {
-	if (PUI->getBunchCrossing() == 0) {
-	  npu_ = PUI->getTrueNumInteractions();
-	}
-      }
-      
       genEvtWeight_ = genEvtInfo->weight();
       lheOriginalXWGTUP_ = lheEvtInfo->originalXWGTUP();
 
       for(unsigned i=0;i<lheEvtInfo->weights().size();i++) {
         string wtid(lheEvtInfo->weights()[i].id);
         float wgt(lheEvtInfo->weights()[i].wgt);
-        if (wtid == "1002" || wtid == "2") scaleWeights_->push_back(wgt/lheOriginalXWGTUP_);
+        
+	if(printWeights){
+	  cout<<" weight "<<i<<" name "<<wtid<<endl;
+	}
+
+	if (wtid == "1002" || wtid == "2") scaleWeights_->push_back(wgt/lheOriginalXWGTUP_);
         if (wtid == "1003" || wtid == "3") scaleWeights_->push_back(wgt/lheOriginalXWGTUP_);
         if (wtid == "1004" || wtid == "4") scaleWeights_->push_back(wgt/lheOriginalXWGTUP_);
         if (wtid == "1005" || wtid == "5") scaleWeights_->push_back(wgt/lheOriginalXWGTUP_);
         if (wtid == "1007" || wtid == "7") scaleWeights_->push_back(wgt/lheOriginalXWGTUP_);
         if (wtid == "1009" || wtid == "9") scaleWeights_->push_back(wgt/lheOriginalXWGTUP_); 
+	
+	for(unsigned weight = 0; weight < weight_vector_.size(); weight++){
+	  if(wtid == weight_vector_.at(weight)) {
+	    EFTWeights_->push_back(wgt/lheOriginalXWGTUP_);
+	  }
+	}
 
-        if ((stoi(wtid) > 2000 && stoi(wtid) <= 2102) || (stoi(wtid) > 10 && stoi(wtid) <= 110)) {
-          pdfWeights_->push_back(wgt/lheOriginalXWGTUP_);
-        }
+	if (wtid.find("rwgt_") != std::string::npos) continue;
+
+	if ((std::stoi(wtid) > 2000 && std::stoi(wtid) <= 2102) || (std::stoi(wtid) > 10 && std::stoi(wtid) <= 110)) {
+	  pdfWeights_->push_back(wgt/lheOriginalXWGTUP_);
+	}	
       }
     }
+
+    printWeights = false;
     
     vector<LorentzVector> vP4Gen;
   
@@ -270,18 +245,6 @@ void BoostedTTbarFlatTreeProducerGenLevel::analyze(edm::Event const& iEvent, edm
       if (i_gen->pt() > GenptMin_ && fabs(i_gen->y()) < GenetaMax_ ) {
 	
 	nGenJets_++;
-	
-	//W jet flag
-	for(unsigned ip = 0; ip < genParticles->size(); ++ ip) {
-	  const GenParticle &p = (*genParticles)[ip];
-	  if (fabs(p.pdgId()) == 24) {//bug it should be the absolute value!!
-            double deltaEta=i_gen->eta()-p.momentum().eta();
-            double deltaPhiJP=deltaPhi(i_gen->phi(),p.momentum().phi());
-            double deltaRJPMin=sqrt(pow(deltaEta,2)+pow(deltaPhiJP,2));
-            if(deltaRJPMin<0.6) {isWJetGen_->push_back(true);}
-	    else { isWJetGen_->push_back(false); }
-          }
-	}
 	
 	GenJetpt_->push_back(i_gen->pt());
 	GenJetphi_->push_back(i_gen->phi());
@@ -333,32 +296,11 @@ void BoostedTTbarFlatTreeProducerGenLevel::analyze(edm::Event const& iEvent, edm
       }
     }
 
-    edm::Handle<reco::JetFlavourInfoMatchingCollection> theJetFlavourInfos;
-    iEvent.getByToken(jetFlavourInfosToken_, theJetFlavourInfos );
-    
-    for ( reco::JetFlavourInfoMatchingCollection::const_iterator j  = theJetFlavourInfos->begin();j != theJetFlavourInfos->end();++j ) {
-      const reco::Jet *aJet = (*j).first.get();
-      reco::JetFlavourInfo aInfo = (*j).second;
-
-      if (aJet->pt() > GenptMin_ && fabs(aJet->y()) < GenetaMax_ ) {
-        
-	int FlavourGenHadron = aInfo.getHadronFlavour();
-	if(abs(FlavourGenHadron)==5){ 
-	  isBJetGen_->push_back(true);
-	}
-	else isBJetGen_->push_back(false);
-      }
-    }
-
-    cut_GEN = (nGenJets_>1);
-    
   }//--- end of MC -------
 
   EventsHisto_->Fill(1.,1.);
   
-  if (cut_GEN) {
-    outTree_->Fill();
-  }
+  outTree_->Fill();
 }
 //////////////////////////////////////////////////////////////////////////////////////////
 void BoostedTTbarFlatTreeProducerGenLevel::initialize()
@@ -378,8 +320,6 @@ void BoostedTTbarFlatTreeProducerGenLevel::initialize()
   WBosonPhi_->clear();
   WBosonE_->clear(); 
          
-  isBJetGen_->clear();
-  isWJetGen_->clear();
   GenSoftDropMass_->clear();
   GenSoftDropTau32_->clear();
   GenSoftDropTau31_->clear();
@@ -392,21 +332,12 @@ void BoostedTTbarFlatTreeProducerGenLevel::initialize()
   GenJetenergy_->clear();
   GenJetmass_->clear();
   
-  GenSubJet1Pt_->clear();
-  GenSubJet2Pt_->clear();
-  GenSubJet1Eta_->clear();
-  GenSubJet2Eta_->clear();
-  GenSubJet1Phi_->clear();
-  GenSubJet2Phi_->clear();
-  GenSubJet1Mass_->clear();
-  GenSubJet2Mass_->clear();
-
   if (isHigherOrder_) {
     scaleWeights_->clear();
     pdfWeights_->clear();
+    EFTWeights_->clear();
   }
 
-  npu_               = -1;
   genEvtWeight_      = -999;
   lheOriginalXWGTUP_ = -999;
     

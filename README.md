@@ -17,7 +17,7 @@ cmsenv
 
 git init
 
-git clone -b GenLevel https://github.com/pgunnell/UserCode.git
+git clone -b EFT_analysis https://github.com/pgunnell/UserCode.git
 
 For compiling (needed every time you make changes in a .cc/.h file):
 
