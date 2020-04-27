@@ -229,7 +229,7 @@ void BoostedTTbarFlatTreeProducerGenLevel::analyze(edm::Event const& iEvent, edm
 	WBosonE_  ->push_back(p.energy());
       }
 
-      if (p.pdgId() == 6 && p.status()==22) {
+      if (p.pdgId() == 6 && p.status()==23) {
 	TopPt_ ->push_back(p.pt());
 	TopEta_->push_back(p.eta());
 	TopPhi_->push_back(p.phi());
@@ -237,7 +237,7 @@ void BoostedTTbarFlatTreeProducerGenLevel::analyze(edm::Event const& iEvent, edm
 	p4T = p.p4();
       }
 
-      if (p.pdgId() == -6 && p.status()==22) {
+      if (p.pdgId() == -6 && p.status()==23) {
 	AntiTopPt_ ->push_back(p.pt());
 	AntiTopEta_->push_back(p.eta());
 	AntiTopPhi_->push_back(p.phi());

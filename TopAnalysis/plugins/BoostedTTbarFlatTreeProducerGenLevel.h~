@@ -93,7 +93,7 @@ class BoostedTTbarFlatTreeProducerGenLevel : public edm::EDAnalyzer
     std::vector<int>   *WBosonId_,*WBosonSt_;
     std::vector<float> *WBosonPt_,*WBosonEta_,*WBosonPhi_,*WBosonE_;
 
-    std::vector<float> *TopPt_,*TopEta_,*TopPhi_,*TopE_,*DiTopMass_;
+    std::vector<float> *TopPt_,*TopEta_,*TopPhi_,*TopE_,*DiTopMass;
     std::vector<float> *AntiTopPt_,*AntiTopEta_,*AntiTopPhi_,*AntiTopE_;
 
     //gen jets
